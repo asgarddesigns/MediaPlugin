@@ -87,7 +87,15 @@ namespace Plugin.Media
         /// <inheritdoc/>
         public bool IsPickVideoSupported => true;
 
-        /// <summary>
+	    public async Task<List<MediaFile>> PickPhotosAsync(PickMediaOptions options = null, MultiPickerCustomisations customisations = null)
+	    {
+			// TODO: Implement UWP multi-picker
+		    var result = await PickPhotoAsync(options);
+
+			return new List<MediaFile> { result };
+	    }
+
+	    /// <summary>
         /// Take a photo async with specified options
         /// </summary>
         /// <param name="options">Camera Media Options</param>

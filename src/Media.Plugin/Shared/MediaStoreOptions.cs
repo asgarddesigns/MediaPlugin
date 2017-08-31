@@ -157,7 +157,13 @@ namespace Plugin.Media.Abstractions
 		public MediaPickerModalPresentationStyle ModalPresentationStyle { get; set; } = MediaPickerModalPresentationStyle.FullScreen;
     }
 
-    
+	public class StorePickerMediaOptions : StoreMediaOptions
+	{
+		/// <summary>
+		/// Enable multi picker
+		/// </summary>
+		public bool MultiPicker { get; set; }
+	}
 
     /// <summary>
     /// 
@@ -390,4 +396,32 @@ namespace Plugin.Media.Abstractions
             set;
         }
     }
+
+
+	public enum MultiPickerBarStyle
+	{
+		Default = 0,
+		Black = 1,
+		BlackOpaque = 1,
+		BlackTranslucent = 2
+	}
+
+	/// <summary>
+	/// UI customisations for iOS multi image picker
+	/// </summary>
+	public class MultiPickerCustomisations
+	{
+		// TODO: This only affects iOS since Android uses native
+
+		public int MaximumImagesCount { get; set; } = 10;
+
+		public MultiPickerBarStyle BarStyle { get; set; } = MultiPickerBarStyle.Default;
+
+		public string PathToOverlay { get; set; }
+		public string AlbumSelectTitle { get; set; }
+		public string PhotoSelectTitle { get; set; }
+		public string BackBattonTitle { get; set; }
+		public string DoneButtonTitle { get; set; }
+		public string Loadingtitle { get; set; }
+	}
 }

@@ -62,6 +62,9 @@
 
 	<ItemGroup Condition=" $(TargetFramework.StartsWith('Xamarin.iOS')) ">
 		<Compile Include="**\iOS\*.cs" />
+		<Compile Include="iOS\ELCImagePickerViewController.cs" />
+		<BundleResource Include="Resources\Overlay%402x.png" />
+    	<BundleResource Include="Resources\Overlay.png" />
 	</ItemGroup>
 
 

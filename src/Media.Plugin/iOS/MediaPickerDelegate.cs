@@ -13,6 +13,7 @@ using System.Globalization;
 using ImageIO;
 using MobileCoreServices;
 using System.Drawing;
+using CoreImage;
 
 namespace Plugin.Media
 {
@@ -40,6 +41,7 @@ namespace Plugin.Media
 		public UIView View => viewController.View;
 
 		public Task<MediaFile> Task => tcs.Task;
+		public Task<List<MediaFile>> Task => tcs.Task;
 
 		public override async void FinishedPickingMedia(UIImagePickerController picker, NSDictionary info)
 		{
@@ -70,19 +72,30 @@ namespace Plugin.Media
                 if (mediaFile == null)
                     tcs.SetException(new FileNotFoundException());
 				else
-					tcs.TrySetResult(mediaFile);
+					tcs.TrySetResult(new List<MediaFile> { mediaFile });
 			});
 		}
 
 		public override void Canceled(UIImagePickerController picker)
 		{
 			RemoveOrientationChangeObserverAndNotifications();
-
 			if (UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Phone)
 			{
 				UIApplication.SharedApplication.SetStatusBarStyle(MediaImplementation.StatusBarStyle, false);
 			}
+			Dismiss(picker, () =>
+			{
+				tcs.SetResult(null);
+			});
+		}
 
+		public void Canceled(UINavigationController picker)
+		{
+			RemoveOrientationChangeObserverAndNotifications();
+			if (UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Phone)
+			{
+				UIApplication.SharedApplication.SetStatusBarStyle(MediaImplementation.StatusBarStyle, false);
+			}
 			Dismiss(picker, () =>
 			{
 				tcs.SetResult(null);
@@ -132,17 +145,18 @@ namespace Plugin.Media
 		private readonly UIViewController viewController;
 		private readonly UIImagePickerControllerSourceType source;
 		private TaskCompletionSource<MediaFile> tcs = new TaskCompletionSource<MediaFile>();
+		private TaskCompletionSource<List<MediaFile>> tcs = new TaskCompletionSource<List<MediaFile>>();
 		private readonly StoreCameraMediaOptions options;
 
 		private bool IsCaptured =>
 			source == UIImagePickerControllerSourceType.Camera;
 
-		private void Dismiss(UIImagePickerController picker, NSAction onDismiss)
+		private void Dismiss(UINavigationController picker, NSAction onDismiss)
 		{
 			if (viewController == null)
 			{
 				onDismiss();
-				tcs = new TaskCompletionSource<MediaFile>();
+				tcs = new TaskCompletionSource<List<MediaFile>>();
 			}
 			else
 			{
@@ -400,7 +414,7 @@ namespace Plugin.Media
 					try
 					{
 						var library = new ALAssetsLibrary();
-						var albumSave = await library.WriteImageToSavedPhotosAlbumAsync(cgImage, meta);
+						var albumSave = await library.WriteImageToSavedPhotosAlbumAsync(cgImage, meta ?? new NSDictionary());
 						aPath = albumSave.AbsoluteString;
 					}
 					catch (Exception ex)
@@ -422,7 +436,7 @@ namespace Plugin.Media
 			return new MediaFile(path, () => File.OpenRead(path), streamGetterForExternalStorage: () => getStreamForExternalStorage(), albumPath: aPath);
 		}
 
-		private static NSDictionary SetGpsLocation(NSDictionary meta, Location location)
+		internal static NSDictionary SetGpsLocation(NSDictionary meta, Location location)
 		{
 			var newMeta = new NSMutableDictionary();
 			newMeta.SetValuesForKeysWithDictionary(meta);
@@ -467,7 +481,9 @@ namespace Plugin.Media
 				var destinationOptions = new CGImageDestinationOptions();
 
 				if (meta.ContainsKey(ImageIO.CGImageProperties.Orientation))
+				{
 					destinationOptions.Dictionary[ImageIO.CGImageProperties.Orientation] = meta[ImageIO.CGImageProperties.Orientation];
+				}
 
 				if (meta.ContainsKey(ImageIO.CGImageProperties.DPIWidth))
 					destinationOptions.Dictionary[ImageIO.CGImageProperties.DPIWidth] = meta[ImageIO.CGImageProperties.DPIWidth];
@@ -487,7 +503,12 @@ namespace Plugin.Media
 
 				if (meta.ContainsKey(ImageIO.CGImageProperties.TIFFDictionary))
 				{
-					destinationOptions.TiffDictionary = new CGImagePropertiesTiff(meta[ImageIO.CGImageProperties.TIFFDictionary] as NSDictionary);
+					var newTiffDict = meta[ImageIO.CGImageProperties.TIFFDictionary] as NSDictionary;
+					if (newTiffDict != null)
+					{
+						newTiffDict.SetValueForKey(meta[ImageIO.CGImageProperties.Orientation], ImageIO.CGImageProperties.TIFFOrientation);
+						destinationOptions.TiffDictionary = new CGImagePropertiesTiff(newTiffDict);
+					}
 
 				}
 				if (meta.ContainsKey(ImageIO.CGImageProperties.GPSDictionary))
@@ -547,7 +568,7 @@ namespace Plugin.Media
 					try
 					{
 						var library = new ALAssetsLibrary();
-						var albumSave = await library.WriteVideoToSavedPhotosAlbumAsync(new NSUrl(path));
+						var albumSave = await library.WriteImageToSavedPhotosAlbumAsync(cgImage, meta ?? new NSDictionary());
 						aPath = albumSave.AbsoluteString;
 					}
 					catch (Exception ex)

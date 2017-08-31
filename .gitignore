@@ -243,3 +243,6 @@ tests/.droidres/.media.droidres.db
 tests/.droidres/.media.droidres.db
 tests/.droidres/.media.droidres.db
 *.db
+
+# Mac junk
+.DS_Store
